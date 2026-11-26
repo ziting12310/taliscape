@@ -41,8 +41,6 @@ beat.onBeat = () => {
 const stageWrap = document.getElementById('stageWrap');
 const phaseText = document.getElementById('phaseText');
 const statusText = document.getElementById('statusText');
-const beatFill = document.getElementById('beatFill');
-const beatCount = document.getElementById('beatCount');
 const shameFill = document.getElementById('shameFill');
 const shameText = document.getElementById('shameText');
 
@@ -74,8 +72,6 @@ const renderer = new Renderer(canvas, {
   stageWrap,
   phaseText,
   statusText,
-  beatFill,
-  beatCount,
   shameFill,
   shameText
 });
@@ -108,6 +104,16 @@ window.addEventListener('keydown', (e) => {
   if (!map.isInBounds(tx, ty)) return;
 
   const cell = map.getCell(tx, ty);
+
+  // 回头窗口内：只要会真正产生移动或拉椅动作就被抓
+  if (teacher.phase === 'turn') {
+    if (map.isPassable(tx, ty) || map.isPullable(tx, ty)) {
+      quiz.open('cet');
+    } else {
+      renderer.setHint(BLOCK_HINT[cell.type] || '走不过去', 1200);
+    }
+    return;
+  }
 
   if (cell.type === CellType.SEAT_CLOSED) {
     const r = player.startPull(tx, ty);
@@ -162,25 +168,22 @@ function handleTurn() {
     return;
   }
 
-  // ③ 抓捕成立：动作未落地 / 静止站在破损座椅
-  const caughtMidAction = player.isMidAction();
-  const caughtOnBrokenSeat = !caughtMidAction && player.isOnBrokenSeat();
-
-  if (!caughtMidAction && !caughtOnBrokenSeat) {
-    teacher.backToBoard();
-    return;
-  }
-
-  // ④ 分流：动作未落地 → 四六级；破损座椅静止 → 羞愧≥30 闪回 / 否则四六级
-  if (caughtMidAction) {
+  // ③ 回头开始瞬间动作尚未落地 → 四六级
+  if (player.isMidAction()) {
     quiz.open('cet');
     return;
   }
-  if (shame.value >= FLASHBACK_MIN_SHAME) {
-    quiz.open('flashback', shame.getFlashbackStage());
-  } else {
-    quiz.open('cet');
+
+  // ④ 静止站在破损座椅 → 羞愧≥30 闪回，否则四六级
+  if (player.isOnBrokenSeat()) {
+    if (shame.value >= FLASHBACK_MIN_SHAME) {
+      quiz.open('flashback', shame.getFlashbackStage());
+    } else {
+      quiz.open('cet');
+    }
   }
+
+  // 其余情况保持回头窗口，玩家一旦移动才会被抓
 }
 
 /* ---------- 答题面板 ---------- */
@@ -272,7 +275,7 @@ function loop(ts) {
       const ev = player.tick(delta, beat.beatMs);
       if (ev) onActionDone(ev);
     }
-    renderer.updateHud({ sm, teacher, player, beat, shame });
+    renderer.updateHud({ sm, teacher, player, shame });
     renderer.draw(map, player, sm, teacher, ts);
   } catch (err) {
     console.error('[loop]', err);
@@ -325,6 +328,6 @@ resultAgainBtn.addEventListener('click', () => {
 });
 
 /* 启动 */
-renderer.updateHud({ sm, teacher, player, beat, shame });
+renderer.updateHud({ sm, teacher, player, shame });
 renderer.setHint('点击「开始逃课」进入教室', 4000);
 requestAnimationFrame(loop);

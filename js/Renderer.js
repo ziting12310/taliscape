@@ -338,16 +338,14 @@ export class Renderer {
 
   /* ================= HUD ================= */
 
-  updateHud({ sm, teacher, player, beat, shame }) {
+  updateHud({ sm, teacher, player, shame }) {
     const d = this.dom;
     if (!d.phaseText) return;
 
-    // 阶段文字
+    // 阶段文字：只显示状态，不显示拍数倒计时
     if (sm.state === GameState.PLAYING && teacher) {
       const label = TEACHER_LABEL[teacher.phase] || teacher.phase;
-      d.phaseText.textContent = teacher.phase === 'turn'
-        ? `${label}！`
-        : `${label} · 还剩 ${teacher.beatsLeft} 拍`;
+      d.phaseText.textContent = teacher.phase === 'turn' ? `${label}！` : label;
     } else {
       d.phaseText.textContent = STATE_LABEL[sm.state] || sm.state;
     }
@@ -360,14 +358,10 @@ export class Renderer {
       } else if (teacher && teacher.phase === 'turn') {
         text = '停下！老师回头了';
       } else if (teacher && teacher.phase === 'pace') {
-        text = '老师踱步中，小心节拍';
+        text = '老师踱步中，抓紧行动';
       }
       d.statusText.textContent = sm.state === GameState.PLAYING ? text : '';
     }
-
-    // 节拍
-    if (d.beatFill) d.beatFill.style.width = `${(beat.beatProgress() * 100).toFixed(1)}%`;
-    if (d.beatCount) d.beatCount.textContent = `拍 ${beat.beatIndex}`;
 
     // 羞愧条与压力
     const ratio = shame.value / SHAME_MAX;

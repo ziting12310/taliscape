@@ -1,9 +1,13 @@
-/* TeacherAI —— 板书 / 踱步 / 回头 三段式，按拍推进 */
+/* TeacherAI —— 板书 / 踱步 / 回头 三段式，按拍推进
+ * 回头是持续窗口：期间玩家一旦移动即被抓。
+ */
 
-const BOARD_MIN = 4;
-const BOARD_MAX = 6;
-const PACE_MIN = 2;
-const PACE_MAX = 3;
+const BOARD_MIN = 2;
+const BOARD_MAX = 3;
+const PACE_MIN = 3;
+const PACE_MAX = 4;
+const TURN_MIN = 2;
+const TURN_MAX = 3;
 
 function randInt(min, max) {
   return min + Math.floor(Math.random() * (max - min + 1));
@@ -24,9 +28,8 @@ export class TeacherAI {
     this._enterBoard();
   }
 
-  /* 每拍推进一次；回头判定在踱步最后一拍结束时瞬时触发 */
+  /* 每拍推进；回头结束回到板书，不在结束瞬间判定 */
   tickBeat() {
-    if (this.phase === 'turn') return;
     if (this.beatsLeft <= 0) return;
 
     this.beatsLeft--;
@@ -34,17 +37,13 @@ export class TeacherAI {
 
     if (this.phase === 'board') this._enterPace();
     else if (this.phase === 'pace') this._enterTurn();
+    else if (this.phase === 'turn') this._enterBoard();
   }
 
   /* 破损座椅异响：强制切换踱步并重掷拍数（不打断玩家动作） */
   forcePace() {
     if (this.phase === 'turn') return;
     this._enterPace();
-  }
-
-  /* 回头判定未成立 → 回板书 */
-  backToBoard() {
-    this._enterBoard();
   }
 
   /* 答题结束 → 回踱步并重掷拍数 */
@@ -66,7 +65,7 @@ export class TeacherAI {
 
   _enterTurn() {
     this.phase = 'turn';
-    this.beatsLeft = 0;
+    this.beatsLeft = randInt(TURN_MIN, TURN_MAX);
     this.turnCount++;
     this._emit();
     if (this.onTurn) this.onTurn();

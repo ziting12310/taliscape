@@ -51,15 +51,15 @@ export const GameState = {
 };
 ```
 
-> 老师的三段式（板书 / 踱步 / 回头）**不设为全局状态**，而是 `TeacherAI.phase`。因为它每 2–6 拍就切换一次，放进全局状态机只会制造噪声；全局只关心"是否被弹窗/结局中断"。
+> 老师的三段式（板书 / 踱步 / 回头）**不设为全局状态**，而是 `TeacherAI.phase`。因为它每 2–4 拍就切换一次，放进全局状态机只会制造噪声；全局只关心"是否被弹窗/结局中断"。
 
 ### 状态转换表
 
 | FROM | TO | 触发 | 副作用 |
 |---|---|---|---|
 | IDLE | PLAYING | 点击开始 | 重置全部数据、启动节拍、老师进板书 |
-| PLAYING | QUIZ_OPEN | 回头判定成立（动作未落地） | 冻结节拍、锁定输入、开面板 |
-| PLAYING | FLASHBACK_QUIZ | 回头判定成立（破损座椅静止 + 羞愧≥30） | 同上 + 低饱和滤镜 |
+| PLAYING | QUIZ_OPEN | 回头窗口内移动 / 进入瞬间动作未落地 | 冻结节拍、锁定输入、开面板 |
+| PLAYING | FLASHBACK_QUIZ | 回头开始瞬间静止站破损座椅 + 羞愧≥30 | 同上 + 低饱和滤镜 |
 | PLAYING | RESULT | 到出口 / 羞愧≥150 | 停止节拍、结算 |
 | QUIZ_OPEN | PLAYING | 面板关闭 | 解冻、回踱步、重掷拍数 |
 | FLASHBACK_QUIZ | PLAYING | 面板关闭 | 同上 |
@@ -110,8 +110,9 @@ export class BeatClock {
 | 常量 | 值 | 位置 |
 |---|---|---|
 | `BEAT_MS` | 400 | `BeatClock.js` |
-| `BOARD_BEATS` | 4–6 随机整数 | `TeacherAI.js` |
-| `PACE_BEATS` | 2 或 3 | `TeacherAI.js` |
+| `BOARD_BEATS` | 2–3 随机整数 | `TeacherAI.js` |
+| `PACE_BEATS` | 3–4 随机整数 | `TeacherAI.js` |
+| `TURN_BEATS` | 2–3 随机整数 | `TeacherAI.js` |
 | `MOVE_BEATS` | 1.5 | `Player.js` |
 | `PULL_BEATS` | 1 | `Player.js` |
 | `QUIZ_TIME_MS` | 10000 | `QuizManager.js` |
@@ -357,21 +358,23 @@ player.tick 返回 moveDone(cellType)
   → 其他      → 无事
 ```
 
-### 5.3 回头判定
+### 5.3 回头窗口
 
 ```
 beatClock.onBeat → teacherAI.tickBeat()
-  → pace 拍数耗尽 → phase='turn' → onTurn()
+  → pace 拍数耗尽 → phase='turn'（持续 2–3 拍）→ onTurn()
 
-onTurn():
+onTurn()（回头开始瞬间清算）:
   1. if (到出口) → RESULT(exit)                       // 到门优先
   2. if (shame.isOverload()) → RESULT(overload)
-  3. caught = player.isMidAction()
-              || (玩家静止 && 当前格 === SEAT_BROKEN)
-  4. if (!caught) → teacherAI 回 board
-  5. if (player.isMidAction()) → QuizManager.open('cet')
-     else if (shame.value >= 30) → QuizManager.open('flashback', shame.getFlashbackStage())
-     else → QuizManager.open('cet')
+  3. if (player.isMidAction()) → QuizManager.open('cet')
+  4. else if (静止站在 SEAT_BROKEN):
+       shame >= 30 ? open('flashback', stage) : open('cet')
+  5. 否则什么都不做，回头窗口继续
+
+回头窗口内（phase==='turn'）:
+  键盘按下且目标格可通行 / 可拉椅 → 立即 open('cet')
+  保持不动 → 安全；拍数耗尽 → phase='board'，不追加判定
 ```
 
 ### 5.4 答题结束

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>桃李？逃离！</title>
+  <link rel="stylesheet" href="./css/main.css">
+</head>
+<body>
+  <div id="app">
+
+    <!-- ===== 游戏舞台 ===== -->
+    <div id="stageWrap">
+      <!-- HUD：阶段提示 / 节拍 / 羞愧值 -->
+      <div id="hud">
+        <div class="hud-left">
+          <div id="phaseText" class="phase-text">待机</div>
+          <div class="beat-row">
+            <span class="beat-label">节拍</span>
+            <div class="beat-bar"><div id="beatFill" class="beat-fill"></div></div>
+            <span id="beatCount" class="beat-count">拍 0</span>
+          </div>
+        </div>
+        <div class="hud-right">
+          <span class="shame-label">羞愧值</span>
+          <div class="shame-bar"><div id="shameFill" class="shame-fill"></div></div>
+          <span id="shameText" class="shame-text">0 / 150</span>
+        </div>
+      </div>
+
+      <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
+
+    <!-- ===== 开始页 ===== -->
+    <div id="startScreen" class="overlay">
+      <div class="screen">
+        <div class="screen-title">桃李？逃离！</div>
+        <div class="story">
+          今天的英语课又到了……<br>
+          老师在讲台上念着四六级听力，黑板上密密麻麻全是你看不懂的单词。<br>
+          <span class="story-strong">你不想上课。你想逃离这间教室。</span>
+        </div>
+        <div class="rules">
+          <div class="rules-title">📖 规则速览</div>
+          <ul>
+            <li>方向键 / WASD 移动；走到收起的空座椅旁会自动拉开</li>
+            <li>老师<b>板书</b>时可放心行动，<b>踱步</b>时要留意节拍</li>
+            <li>老师<b>回头</b>的瞬间你还在移动 → 被点名答题</li>
+            <li>答错累积羞愧值，满 150 就要留堂</li>
+            <li>摸到后门即胜利，全程不答题可达成「节奏大师」</li>
+          </ul>
+        </div>
+        <div class="screen-actions">
+          <button class="btn btn-primary" id="startBtn">开始逃课 🏃</button>
+          <button class="btn btn-secondary" id="stayBtn">…还是乖乖听课</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 听课彩蛋页 ===== -->
+    <div id="stayScreen" class="overlay hidden">
+      <div class="screen">
+        <div class="screen-title muted">📚 认真听课…</div>
+        <div class="story">
+          好，你坐回了座位，翻开了课本。<br>
+          <span class="muted-text">5 分钟过去了……10 分钟过去了……老师的声音越来越催眠……</span><br><br>
+          <span class="story-strong">要不，再试一次？</span>
+        </div>
+        <div class="screen-actions">
+          <button class="btn btn-primary" id="stayRetryBtn">这次真的要逃 🏃</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== 答题面板（三栏骨架） ===== -->
+    <div id="quizModal" class="quiz-backdrop hidden">
+      <div class="quiz-box">
+        <div class="quiz-portrait portrait-left">
+          <span id="quizLeftEmoji" class="portrait-emoji">🧑‍🏫</span>
+          <span id="quizLeftTag" class="portrait-tag">老师</span>
+        </div>
+
+        <div class="quiz-main">
+          <div id="quizStageTag" class="quiz-stage-tag">四六级</div>
+          <div id="quizQuestion" class="quiz-question"></div>
+          <ul id="quizOptions" class="quiz-options"></ul>
+          <div class="quiz-timer"><div id="quizTimerFill" class="quiz-timer-fill"></div></div>
+          <div id="quizFeedback" class="quiz-feedback hidden"></div>
+        </div>
+
+        <div class="quiz-portrait portrait-right">
+          <span id="quizRightEmoji" class="portrait-emoji">🧑‍🎓</span>
+          <span id="quizRightTag" class="portrait-tag">你</span>
+        </div>
+      </div>
+      <button id="quizNextBtn" class="btn btn-primary hidden">继续</button>
+    </div>
+
+    <!-- ===== 结局页 ===== -->
+    <div id="resultScreen" class="overlay hidden">
+      <div class="screen result-screen">
+        <div id="resultTitle" class="result-title"></div>
+        <div id="resultDesc" class="result-desc"></div>
+        <div id="resultStats" class="result-stats"></div>
+        <div id="resultWrongList" class="result-wrong"></div>
+        <button class="btn btn-primary" id="resultAgainBtn">再来一次</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

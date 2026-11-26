@@ -1,5 +1,5 @@
-/* main.js —— Phase 3：老师三板式 + 回头判定 + 破损座椅异响
- * 答题面板仍为占位（Phase 5 接入真实题库与倒计时）。
+/* main.js —— Phase 5：真实题库 + 10 秒倒计时答题面板
+ * 结算与结局判定在 Phase 6 接入。
  */
 import { GameState, StateMachine } from './GameState.js';
 import { BeatClock } from './BeatClock.js';
@@ -9,6 +9,7 @@ import { Player } from './Player.js';
 import { TeacherAI } from './TeacherAI.js';
 import { ShameTracker, SHAME_MAX, FLASHBACK_MIN_SHAME } from './ShameTracker.js';
 import { ResultManager, STAGE_LABEL } from './ResultManager.js';
+import { QuizManager } from './QuizManager.js';
 import { Renderer } from './Renderer.js';
 
 /* ---------- 实例化 ---------- */
@@ -190,56 +191,47 @@ function handleTurn() {
 
   // ④ 分流：动作未落地 → 四六级；破损座椅静止 → 羞愧≥30 闪回 / 否则四六级
   if (caughtMidAction) {
-    openQuiz('cet');
+    quiz.open('cet');
     return;
   }
-  openQuiz(shame.value >= FLASHBACK_MIN_SHAME ? 'flashback' : 'cet');
+  if (shame.value >= FLASHBACK_MIN_SHAME) {
+    quiz.open('flashback', shame.getFlashbackStage());
+  } else {
+    quiz.open('cet');
+  }
 }
 
-/* ---------- 答题面板（占位，Phase 5 替换） ---------- */
-let currentQuizKind = null;
+/* ---------- 答题面板 ---------- */
+const quiz = new QuizManager(
+  sm,
+  {
+    modal: quizModal,
+    stageTag: quizStageTag,
+    question: quizQuestion,
+    options: quizOptions,
+    feedback: quizFeedback,
+    timerFill: quizTimerFill,
+    nextBtn: quizNextBtn,
+    leftEmoji: quizLeftEmoji,
+    rightEmoji: quizRightEmoji,
+    leftTag: quizLeftTag,
+    rightTag: quizRightTag
+  },
+  {
+    onFinish: ({ kind, correct, stage, question }) => {
+      if (kind === 'flashback') shame.applyFlashback(correct);
+      else shame.applyCET(correct);
 
-function openQuiz(kind) {
-  const nextState = kind === 'flashback' ? GameState.FLASHBACK_QUIZ : GameState.QUIZ_OPEN;
-  if (!sm.transition(nextState)) return;
+      result.record(kind, correct, question);
 
-  currentQuizKind = kind;
-  const isFlashback = kind === 'flashback';
-
-  quizModal.classList.toggle('flashback', isFlashback);
-  quizStageTag.textContent = isFlashback ? '闪回' : '四六级';
-  quizQuestion.textContent = isFlashback
-    ? '一段回忆涌了上来……（闪回答题将在 Phase 5 接入）'
-    : '被老师抓住了！（答题面板将在 Phase 5 接入）';
-  quizOptions.innerHTML = '';
-  quizFeedback.textContent = '';
-  quizFeedback.classList.add('hidden');
-  quizTimerFill.style.width = '100%';
-  quizTimerFill.classList.remove('low');
-
-  quizLeftEmoji.textContent = isFlashback ? '👩‍🏫' : '🧑‍🏫';
-  quizRightEmoji.textContent = isFlashback ? '🧒' : '🧑‍🎓';
-  quizLeftTag.textContent = isFlashback ? '记忆里的老师' : '老师';
-  quizRightTag.textContent = isFlashback ? '童年的你' : '你';
-
-  quizNextBtn.classList.remove('hidden');
-  quizModal.classList.remove('hidden');
-}
-
-quizNextBtn.addEventListener('click', () => {
-  quizModal.classList.add('hidden');
-  currentQuizKind = null;
-
-  if (sm.state === GameState.QUIZ_OPEN || sm.state === GameState.FLASHBACK_QUIZ) {
-    sm.transition(GameState.PLAYING);
+      if (shame.isOverload()) {
+        finishByOverload();
+        return;
+      }
+      teacher.enterPaceAfterQuiz();
+    }
   }
-
-  if (shame.isOverload()) {
-    finishByOverload();
-    return;
-  }
-  teacher.enterPaceAfterQuiz();
-});
+);
 
 /* ---------- 结算占位（结局判定在 Phase 6 接入） ---------- */
 function renderResultStats() {
@@ -308,7 +300,7 @@ function begin() {
   startScreen.classList.add('hidden');
   stayScreen.classList.add('hidden');
   resultScreen.classList.add('hidden');
-  quizModal.classList.add('hidden');
+  quiz.cancel();
 
   map.reset();
   player.reset();

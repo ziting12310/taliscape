@@ -8,6 +8,7 @@ import { MapManager } from './MapManager.js';
 import { Player } from './Player.js';
 import { TeacherAI } from './TeacherAI.js';
 import { ShameTracker, SHAME_MAX, FLASHBACK_MIN_SHAME } from './ShameTracker.js';
+import { ResultManager, STAGE_LABEL } from './ResultManager.js';
 import { Renderer } from './Renderer.js';
 
 /* ---------- 实例化 ---------- */
@@ -16,6 +17,7 @@ const beat = new BeatClock(400);
 const map = new MapManager();
 const player = new Player(map);
 const shame = new ShameTracker();
+const result = new ResultManager();
 
 const canvas = document.getElementById('gameCanvas');
 const renderer = new Renderer(canvas);
@@ -239,12 +241,31 @@ quizNextBtn.addEventListener('click', () => {
   teacher.enterPaceAfterQuiz();
 });
 
-/* ---------- 结算占位（Phase 6 接入） ---------- */
+/* ---------- 结算占位（结局判定在 Phase 6 接入） ---------- */
+function renderResultStats() {
+  resultStats.innerHTML = result.statsItems()
+    .map(([label, value]) => `<div class="result-stat">${label}<b>${value}</b></div>`)
+    .join('');
+}
+
+function renderWrongList() {
+  if (result.wrongList.length === 0) {
+    resultWrongList.innerHTML = '<div class="result-wrong-item">本局没有答错的题目。</div>';
+    return;
+  }
+
+  resultWrongList.innerHTML = result.wrongList.map((w) => {
+    const stage = w.stage ? `（${STAGE_LABEL[w.stage] || w.stage}）` : '';
+    const point = w.point ? ` · ${w.point}` : '';
+    return `<div class="result-wrong-item">${w.question}${stage}${point}</div>`;
+  }).join('');
+}
+
 function showResult(title, desc) {
   resultTitle.textContent = title;
   resultDesc.textContent = desc;
-  resultStats.innerHTML = '';
-  resultWrongList.innerHTML = '<div class="result-wrong-item">结算与结局判定将在 Phase 6 接入。</div>';
+  renderResultStats();
+  renderWrongList();
   resultScreen.classList.remove('hidden');
 }
 
@@ -292,6 +313,7 @@ function begin() {
   map.reset();
   player.reset();
   shame.reset();
+  result.reset();
   teacher.reset();
 
   if (sm.state === GameState.RESULT) sm.transition(GameState.IDLE);

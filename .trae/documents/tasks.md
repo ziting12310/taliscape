@@ -47,11 +47,11 @@
 
 ## Phase 4：羞愧值与统计
 
-- [ ] T4.1 `ShameTracker.js`：`value` 0–150 钳制、`failCount`、四六级递增曲线（+10/+20/+35/+50）、答对 −10
-- [ ] T4.2 `ShameTracker.applyFlashback(correct)`：答对 −20、答错/超时 +10，不计入 `failCount`
-- [ ] T4.3 `ShameTracker.getFlashbackStage()`：按羞愧区间加权随机返回 幼儿园/小学/初中/高中
-- [ ] T4.4 `ShameTracker.isOverload()`
-- [ ] T4.5 `ResultManager.js` 统计：总答题、四六级对/错、闪回对/错、错题集合（单词/短语/语法点）
+- [x] T4.1 `ShameTracker.js`：`value` 0–150 钳制、`failCount`、四六级递增曲线（+10/+20/+35/+50）、答对 −10
+- [x] T4.2 `ShameTracker.applyFlashback(correct)`：答对 −20、答错/超时 +10，不计入 `failCount`
+- [x] T4.3 `ShameTracker.getFlashbackStage()`：按羞愧区间加权随机返回 幼儿园/小学/初中/高中
+- [x] T4.4 `ShameTracker.isOverload()`
+- [x] T4.5 `ResultManager.js` 统计：总答题、四六级对/错、闪回对/错、错题集合（单词/短语/语法点）
 
 ## Phase 5：题库与答题面板
 

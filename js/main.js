@@ -7,7 +7,7 @@ import { CellType } from './MapData.js';
 import { MapManager } from './MapManager.js';
 import { Player } from './Player.js';
 import { TeacherAI } from './TeacherAI.js';
-import { ShameTracker, SHAME_MAX, FLASHBACK_MIN_SHAME } from './ShameTracker.js';
+import { ShameTracker, FLASHBACK_MIN_SHAME } from './ShameTracker.js';
 import { ResultManager, STAGE_LABEL } from './ResultManager.js';
 import { QuizManager } from './QuizManager.js';
 import { Renderer } from './Renderer.js';
@@ -21,7 +21,6 @@ const shame = new ShameTracker();
 const result = new ResultManager();
 
 const canvas = document.getElementById('gameCanvas');
-const renderer = new Renderer(canvas);
 
 const teacher = new TeacherAI({
   onTurn: handleTurn,
@@ -34,7 +33,9 @@ beat.onBeat = () => {
 };
 
 /* ---------- DOM ---------- */
+const stageWrap = document.getElementById('stageWrap');
 const phaseText = document.getElementById('phaseText');
+const statusText = document.getElementById('statusText');
 const beatFill = document.getElementById('beatFill');
 const beatCount = document.getElementById('beatCount');
 const shameFill = document.getElementById('shameFill');
@@ -64,39 +65,15 @@ const quizRightEmoji = document.getElementById('quizRightEmoji');
 const quizLeftTag = document.getElementById('quizLeftTag');
 const quizRightTag = document.getElementById('quizRightTag');
 
-const STATE_LABEL = {
-  [GameState.IDLE]: '待机',
-  [GameState.PLAYING]: '上课中',
-  [GameState.QUIZ_OPEN]: '答题中',
-  [GameState.FLASHBACK_QUIZ]: '回忆中',
-  [GameState.RESULT]: '结算'
-};
-
-const TEACHER_LABEL = {
-  board: '📖 板书',
-  pace: '🚶 踱步',
-  turn: '👀 回头'
-};
-
-/* ---------- HUD ---------- */
-function updateHud() {
-  if (sm.state === GameState.PLAYING) {
-    const label = TEACHER_LABEL[teacher.phase] || teacher.phase;
-    phaseText.textContent = teacher.phase === 'turn'
-      ? `${label}！`
-      : `${label} · 还剩 ${teacher.beatsLeft} 拍`;
-  } else {
-    phaseText.textContent = STATE_LABEL[sm.state] || sm.state;
-  }
-
-  beatFill.style.width = `${(beat.beatProgress() * 100).toFixed(1)}%`;
-  beatCount.textContent = `拍 ${beat.beatIndex}`;
-
-  const ratio = shame.value / SHAME_MAX;
-  shameFill.style.width = `${(ratio * 100).toFixed(1)}%`;
-  shameFill.style.backgroundPosition = `${(ratio * 100).toFixed(1)}% 0%`;
-  shameText.textContent = `${shame.value} / ${SHAME_MAX}`;
-}
+const renderer = new Renderer(canvas, {
+  stageWrap,
+  phaseText,
+  statusText,
+  beatFill,
+  beatCount,
+  shameFill,
+  shameText
+});
 
 /* ---------- 键盘输入 ---------- */
 const KEY_DIRS = {
@@ -290,8 +267,8 @@ function loop(ts) {
       const ev = player.tick(delta, beat.beatMs);
       if (ev) onActionDone(ev);
     }
-    updateHud();
-    renderer.draw(map, player, sm, ts);
+    renderer.updateHud({ sm, teacher, player, beat, shame });
+    renderer.draw(map, player, sm, teacher, ts);
   } catch (err) {
     console.error('[loop]', err);
   } finally {
@@ -338,6 +315,6 @@ resultAgainBtn.addEventListener('click', () => {
 });
 
 /* 启动 */
-updateHud();
+renderer.updateHud({ sm, teacher, player, beat, shame });
 renderer.setHint('点击「开始逃课」进入教室', 4000);
 requestAnimationFrame(loop);

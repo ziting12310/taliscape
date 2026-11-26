@@ -9,6 +9,14 @@ export const STAGE_LABEL = {
   high: '高中'
 };
 
+export const ENDINGS = {
+  rhythm:   { name: '🏃 节奏大师', desc: '一次都没被点名，你踩着老师的节拍溜出了后门。' },
+  english:  { name: '📘 英语大师', desc: '被抓过几次，但你全答对了，连老师都愣了一下。' },
+  steady:   { name: '🚶 稳步前行', desc: '有对有错，但你稳住了节奏，最后还是摸到了后门。' },
+  lucky:    { name: '🍀 侥幸脱身', desc: '错得比对得多，好在门就在眼前。' },
+  detained: { name: '💀 留堂失败', desc: '羞愧值满了，你被留下来抄写单词。' }
+};
+
 export class ResultManager {
   constructor() {
     this.reset();
@@ -67,5 +75,20 @@ export class ResultManager {
       ['闪回 对/错', `${this.fbCorrect} / ${this.fbWrong}`],
       ['答对率', `${Math.round(this.accuracy() * 100)}%`]
     ];
+  }
+
+  /* 结局判定：outcome = 'exit' | 'overload'
+   * 到门优先于羞愧满，由调用方保证顺序。
+   */
+  computeEnding(outcome) {
+    if (outcome === 'overload') return { key: 'detained', ...ENDINGS.detained };
+
+    let key;
+    if (this.total === 0) key = 'rhythm';
+    else if (this.wrongCount === 0) key = 'english';
+    else if (this.accuracy() >= 0.4) key = 'steady';
+    else key = 'lucky';
+
+    return { key, ...ENDINGS[key] };
   }
 }

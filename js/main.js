@@ -233,7 +233,7 @@ const quiz = new QuizManager(
   }
 );
 
-/* ---------- 结算占位（结局判定在 Phase 6 接入） ---------- */
+/* ---------- 结局结算 ---------- */
 function renderResultStats() {
   resultStats.innerHTML = result.statsItems()
     .map(([label, value]) => `<div class="result-stat">${label}<b>${value}</b></div>`)
@@ -264,13 +264,17 @@ function showResult(title, desc) {
 function finishByExit() {
   if (sm.state !== GameState.PLAYING) return;
   sm.transition(GameState.RESULT);
-  showResult('🎉 逃出去了！', '你摸到了后门，老师还没反应过来。');
+
+  const ending = result.computeEnding('exit');
+  showResult(ending.name, ending.desc);
 }
 
 function finishByOverload() {
   if (sm.state !== GameState.PLAYING) return;
   sm.transition(GameState.RESULT);
-  showResult('💀 留堂了……', '羞愧值满 150，你被老师留下来抄写单词。');
+
+  const ending = result.computeEnding('overload');
+  showResult(ending.name, ending.desc);
 }
 
 /* ---------- 主循环 ---------- */

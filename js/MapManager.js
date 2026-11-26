@@ -28,6 +28,8 @@ export class MapManager {
   /* ---------- 生成 ---------- */
 
   generate() {
+    let riskRetries = 0;
+
     for (let attempt = 1; attempt <= MAP.maxGenerateRetry; attempt++) {
       this._build();
 
@@ -42,13 +44,32 @@ export class MapManager {
       const second = this._findPath(blocked);
       if (!second) continue;
 
-      this.debug = { attempts: attempt, routed: true };
+      // 短路线上破损座椅密度应高于绕行路线；不达标重掷最多 4 次
+      if (!this._riskFavoursShortLine(first, second) && riskRetries < 4) {
+        riskRetries++;
+        continue;
+      }
+
+      this.debug = { attempts: attempt, routed: true, riskRetries };
       return;
     }
 
     this._build();
     this._carveFallback();
-    this.debug = { attempts: MAP.maxGenerateRetry, routed: false };
+    this.debug = { attempts: MAP.maxGenerateRetry, routed: false, riskRetries };
+  }
+
+  _riskFavoursShortLine(shortPath, detourPath) {
+    const countBroken = (path) => path.reduce(
+      (n, p) => n + (this.grid[p.y][p.x].type === CellType.SEAT_BROKEN ? 1 : 0),
+      0
+    );
+
+    const shortBroken = countBroken(shortPath);
+    const detourBroken = countBroken(detourPath);
+
+    // 交叉相乘比较密度，避免除零
+    return shortBroken * detourPath.length >= detourBroken * shortPath.length;
   }
 
   reset() { this.generate(); }

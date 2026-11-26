@@ -12,9 +12,14 @@ import { ResultManager, STAGE_LABEL } from './ResultManager.js';
 import { QuizManager } from './QuizManager.js';
 import { Renderer } from './Renderer.js';
 
+/* ---------- 可调参数 ---------- */
+const BEAT_MS = 400;        // 1 拍时长
+const CREAK_CHANCE = 0.5;   // 破损座椅异响概率
+const MAX_FRAME_MS = 250;   // 单帧最大步进（切后台回来时防止拍数瞬跳）
+
 /* ---------- 实例化 ---------- */
 const sm = new StateMachine();
-const beat = new BeatClock(400);
+const beat = new BeatClock(BEAT_MS);
 const map = new MapManager();
 const player = new Player(map);
 const shame = new ShameTracker();
@@ -135,7 +140,7 @@ function onActionDone(ev) {
   // 破损座椅异响：仅板书阶段、50% 概率、老师强制切踱步
   if (ev.cellType === CellType.SEAT_BROKEN
       && teacher.phase === 'board'
-      && Math.random() < 0.5) {
+      && Math.random() < CREAK_CHANCE) {
     teacher.forcePace();
     renderer.setHint('座椅发出刺耳的异响！老师停下了脚步……', 1800);
   }
@@ -258,7 +263,7 @@ function finishByOverload() {
 let lastTs = 0;
 
 function loop(ts) {
-  const delta = lastTs ? ts - lastTs : 0;
+  const delta = lastTs ? Math.min(ts - lastTs, MAX_FRAME_MS) : 0;
   lastTs = ts;
 
   try {
@@ -278,6 +283,11 @@ function loop(ts) {
 
 /* ---------- 开始 / 重置 ---------- */
 function begin() {
+  // 避免隐藏后的按钮仍持有焦点，被空格/回车再次触发重置
+  if (document.activeElement && document.activeElement.blur) {
+    document.activeElement.blur();
+  }
+
   startScreen.classList.add('hidden');
   stayScreen.classList.add('hidden');
   resultScreen.classList.add('hidden');

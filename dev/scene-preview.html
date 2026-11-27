@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>场景渲染预览</title>
+  <style>
+    html, body { margin: 0; background: #07090d; }
+    #c { display: block; width: 960px; height: 768px; image-rendering: pixelated; }
+  </style>
+</head>
+<body>
+  <canvas id="c" width="960" height="768"></canvas>
+  <script type="module">
+    import { StateMachine, GameState } from '../js/GameState.js';
+    import { MapManager } from '../js/MapManager.js';
+    import { Player } from '../js/Player.js';
+    import { TeacherAI } from '../js/TeacherAI.js';
+    import { ShameTracker } from '../js/ShameTracker.js';
+    import { Renderer } from '../js/Renderer.js';
+
+    const params = new URLSearchParams(location.search);
+    const shameValue = Number(params.get('shame') || 0);
+    const phase = params.get('phase');       // board | pace | turn
+    const calm = params.get('calm') === '1'; // 固定拍序，截图避开频闪帧
+
+    const map = new MapManager();
+    const player = new Player(map);
+    const sm = new StateMachine();
+    sm.transition(GameState.PLAYING);
+    const teacher = new TeacherAI({});
+    if (phase) teacher.phase = phase;
+    const shame = new ShameTracker();
+    shame.value = shameValue;
+
+    const renderer = new Renderer(document.getElementById('c'), {});
+
+    let now = 0;
+    function frame() {
+      now += 60;
+      renderer.draw(map, player, sm, teacher, now, shame, calm ? 99 : Math.floor(now / 400));
+      requestAnimationFrame(frame);
+    }
+    frame();
+  </script>
+</body>
+</html>

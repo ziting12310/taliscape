@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>光照层预览 · 桃李？逃离！</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; background: #0b0d12; color: #e8eefc;
+    font-family: "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    padding: 18px;
+  }
+  h1 { font-size: 16px; font-weight: 600; letter-spacing: .08em; margin: 4px 0 0; color: #7fb0ff; }
+  .wrap { position: relative; border: 1px solid #2a3142; border-radius: 2px; overflow: hidden; }
+  canvas { display: block; width: 960px; height: 768px; image-rendering: pixelated; }
+  .panel {
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+    width: 960px; padding: 10px 12px;
+    background: #161a24; border: 1px solid #2a3142; border-radius: 2px;
+  }
+  .badge {
+    font-size: 12px; padding: 4px 10px; border: 1px solid #3b465c;
+    border-radius: 2px; color: #ffd479; letter-spacing: .06em;
+  }
+  .badge.dim { color: #8b96ab; }
+  input[type=range] { width: 320px; accent-color: #ffb020; }
+  button {
+    font: inherit; font-size: 12px; letter-spacing: .04em;
+    background: #1d2230; color: #e8eefc;
+    border: 1px solid #2a3142; border-radius: 2px;
+    padding: 6px 12px; cursor: pointer;
+  }
+  button:hover { border-color: #4f8cff; }
+  button.active { border-color: #ffb020; color: #ffd479; }
+  .hint { font-size: 12px; color: #8b96ab; width: 960px; line-height: 1.8; }
+  .stats { font-size: 12px; color: #8b96ab; font-variant-numeric: tabular-nums; }
+  .stats b { color: #e8eefc; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<h1>光照层预览 · 五档 / 迟滞 / 按拍频闪</h1>
+
+<div class="wrap"><canvas id="stage" width="960" height="768"></canvas></div>
+
+<div class="panel">
+  <span class="badge" id="levelTag">L0 午后</span>
+  <span class="stats" id="stats">羞愧 0 · 目标 L0</span>
+  <input id="shame" type="range" min="0" max="150" value="0" step="1">
+  <button data-level="0">L0</button>
+  <button data-level="1">L1</button>
+  <button data-level="2">L2</button>
+  <button data-level="3">L3</button>
+  <button data-level="4">L4</button>
+  <button id="autoBtn">自动巡档</button>
+</div>
+
+<p class="hint">
+  拖动滑块模拟羞愧值变化；跨档会按 100ms 一档阶梯推进，降档带 5 点迟滞。L2 起每 8 / 4 / 2 拍掉落一帧灯光。
+  这是原型页，背景用概念图代替正式场景，方便先确认色温与频闪节奏。
+</p>
+
+<script type="module">
+  import { LightingLayer, LIGHT_LEVELS, levelForShame } from '../js/LightingLayer.js';
+
+  const W = 960, H = 768;
+  const canvas = document.getElementById('stage');
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+
+  const levelTag = document.getElementById('levelTag');
+  const stats = document.getElementById('stats');
+  const slider = document.getElementById('shame');
+  const autoBtn = document.getElementById('autoBtn');
+  const levelBtns = [...document.querySelectorAll('button[data-level]')];
+
+  const layer = new LightingLayer();
+
+  const base = new Image();
+  base.src = '../.trae/documents/assets/classroom_day_2_5d.png';
+  let baseReady = false;
+  base.onload = () => { baseReady = true; };
+
+  let shame = 0;
+  let auto = false;
+  let autoDir = 1;
+  let snapPending = false;
+
+  // 允许 ?shame=120 直接进入某个档位，方便截图比对
+  const params = new URLSearchParams(location.search);
+  if (params.has('shame')) {
+    shame = Math.max(0, Math.min(150, Number(params.get('shame')) || 0));
+    slider.value = shame;
+    snapPending = true;
+  }
+
+  slider.addEventListener('input', () => {
+    shame = Number(slider.value);
+    auto = false;
+    autoBtn.classList.remove('active');
+  });
+
+  levelBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const lv = Number(btn.dataset.level);
+      shame = LIGHT_LEVELS[lv].min + 2;
+      slider.value = shame;
+      auto = false;
+      autoBtn.classList.remove('active');
+    });
+  });
+
+  autoBtn.addEventListener('click', () => {
+    auto = !auto;
+    autoBtn.classList.toggle('active', auto);
+  });
+
+  let lastTs = 0;
+  let lastFilter = '';
+
+  function frame(ts) {
+    const delta = lastTs ? Math.min(ts - lastTs, 100) : 0;
+    lastTs = ts;
+
+    if (auto) {
+      shame += autoDir * delta * 0.045;   // 约 5.5 秒跑完 0–150
+      if (shame >= 150) { shame = 150; autoDir = -1; }
+      if (shame <= 0) { shame = 0; autoDir = 1; }
+      slider.value = shame.toFixed(0);
+    }
+
+    const beatIndex = Math.floor(ts / 400);
+
+    // 背景
+    if (baseReady) {
+      ctx.drawImage(base, -32, 0, 1024, 768);
+    } else {
+      ctx.fillStyle = '#232a36';
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    // 光照
+    layer.setShame(shame, ts);
+    if (snapPending) {
+      layer.update(1e9);      // 截图模式：直接落到目标档，跳过阶梯动画
+      snapPending = false;
+    }
+    layer.update(ts);
+
+    const filter = layer.cssFilter();
+    if (filter !== lastFilter) {
+      lastFilter = filter;
+      canvas.style.filter = filter === 'none' ? '' : filter;
+    }
+
+    layer.draw(ctx, W, H, { beatIndex, now: ts });
+
+    // 面板
+    const d = layer.describe();
+    levelTag.textContent = `${d.id} ${d.name}`;
+    levelTag.classList.toggle('dim', d.level === 0);
+    stats.innerHTML = `羞愧 <b>${Math.round(shame)}</b> · 目标 <b>${LIGHT_LEVELS[d.target].id}</b> · 拍 <b>${beatIndex % 8}</b>`;
+    levelBtns.forEach((b, i) => b.classList.toggle('active', i === d.level));
+
+    requestAnimationFrame(frame);
+  }
+
+  requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -13,6 +13,7 @@ export class Player {
   reset() {
     this.x = MAP.start.x;
     this.y = MAP.start.y;
+    this.facing = 'n';     // 开场朝黑板方向
     this.action = null;
   }
 
@@ -29,6 +30,7 @@ export class Player {
     if (!this.map.isPassable(tx, ty)) return { started: false, reason: 'blocked' };
 
     this.action = { type: 'move', tx, ty, beats: MOVE_BEATS, elapsedMs: 0, progress: 0 };
+    this.facing = dy < 0 ? 'n' : dy > 0 ? 's' : dx < 0 ? 'w' : 'e';
     return { started: true, type: 'move' };
   }
 

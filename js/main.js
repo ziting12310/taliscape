@@ -276,7 +276,7 @@ function loop(ts) {
       if (ev) onActionDone(ev);
     }
     renderer.updateHud({ sm, teacher, player, shame });
-    renderer.draw(map, player, sm, teacher, ts);
+    renderer.draw(map, player, sm, teacher, ts, shame, beat.beatIndex);
   } catch (err) {
     console.error('[loop]', err);
   } finally {
@@ -301,6 +301,7 @@ function begin() {
   shame.reset();
   result.reset();
   teacher.reset();
+  renderer.lighting.reset();
 
   if (sm.state === GameState.RESULT) sm.transition(GameState.IDLE);
   if (sm.state === GameState.IDLE) sm.transition(GameState.PLAYING);

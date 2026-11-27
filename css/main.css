@@ -14,7 +14,7 @@
   --good:      #3ddc84;
   --warn:      #ffb020;
   --bad:       #ff5d5d;
-  --radius:    12px;
+  --radius:    2px;
   --shadow:    0 18px 48px rgba(0, 0, 0, .55);
 }
 
@@ -46,11 +46,11 @@ body {
 #stageWrap {
   --pressure: 0;
   position: relative;
-  width: 800px;
+  width: 960px;
   padding: 10px;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 2px;
   box-shadow: var(--shadow);
 }
 
@@ -59,7 +59,7 @@ body {
   content: "";
   position: absolute;
   inset: 0;
-  border-radius: 16px;
+  border-radius: 2px;
   pointer-events: none;
   background: radial-gradient(
     circle at 50% 45%,
@@ -85,11 +85,13 @@ body {
 
 #gameCanvas {
   display: block;
-  width: 800px;
-  height: 600px;
-  background: #0b0d12;
+  width: 960px;
+  height: 768px;
+  background: #07090d;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 2px;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 /* ============ HUD ============ */
@@ -122,22 +124,49 @@ body {
 
 .shame-label { font-size: 11px; color: var(--muted); letter-spacing: .08em; }
 
+/* 羞愧条：15 段像素格（每格 10 点），无圆角 */
 .shame-bar {
   width: 180px;
-  height: 8px;
-  background: var(--line);
-  border-radius: 999px;
+  height: 10px;
+  padding: 2px;
+  background: #141922;
+  border: 1px solid #3d4a5e;
+  border-radius: 0;
   overflow: hidden;
 }
 
 .shame-fill {
   width: 0%;
   height: 100%;
-  background: linear-gradient(90deg, var(--good), var(--warn), var(--bad));
-  background-size: 300% 100%;
-  background-position: 0% 0%;
-  border-radius: inherit;
-  transition: width .25s ease, background-position .25s ease;
+  background: repeating-linear-gradient(
+    90deg,
+    #4f8cff 0 10px,
+    transparent 10px 12px
+  );
+  border-radius: 0;
+  transition: width .2s steps(3, end);
+}
+
+.shame-fill.mid {
+  background: repeating-linear-gradient(
+    90deg,
+    #ffb020 0 10px,
+    transparent 10px 12px
+  );
+}
+
+.shame-fill.high {
+  background: repeating-linear-gradient(
+    90deg,
+    #ff5d5d 0 10px,
+    transparent 10px 12px
+  );
+  animation: shameFlash 400ms steps(1, end) infinite;
+}
+
+@keyframes shameFlash {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: .55; }
 }
 
 .shame-text {
@@ -169,7 +198,7 @@ body {
   padding: 30px 34px;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 2px;
   box-shadow: var(--shadow);
   text-align: center;
 }
@@ -229,7 +258,7 @@ body {
 .btn {
   appearance: none;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 2px;
   padding: 11px 22px;
   font-size: 14px;
   font-weight: 700;
@@ -278,7 +307,7 @@ body {
   min-height: 340px;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 2px;
   overflow: hidden;
   box-shadow: var(--shadow);
 }
@@ -325,7 +354,7 @@ body {
   color: var(--accent-2);
   border: 1px solid rgba(79, 140, 255, .4);
   background: rgba(79, 140, 255, .12);
-  border-radius: 999px;
+  border-radius: 0;
   padding: 3px 10px;
 }
 
@@ -349,7 +378,7 @@ body {
   padding: 10px 12px;
   background: var(--panel-2);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 2px;
   font-size: 14px;
   line-height: 1.5;
   cursor: pointer;
@@ -373,7 +402,7 @@ body {
 .quiz-timer {
   height: 6px;
   background: var(--line);
-  border-radius: 999px;
+  border-radius: 0;
   overflow: hidden;
   margin-top: auto;
 }
@@ -431,7 +460,7 @@ body {
 .result-stat {
   background: var(--panel-2);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 2px;
   padding: 10px 14px;
   font-size: 13px;
   color: var(--muted);
@@ -457,3 +486,6 @@ body {
 
 .result-wrong-item { border-bottom: 1px dashed var(--line); padding: 6px 0; }
 .result-wrong-item:last-child { border-bottom: none; }
+
+
+

@@ -11,6 +11,7 @@ import { ShameTracker, FLASHBACK_MIN_SHAME } from './ShameTracker.js';
 import { ResultManager, STAGE_LABEL } from './ResultManager.js';
 import { QuizManager } from './QuizManager.js';
 import { Renderer } from './Renderer.js';
+import { decideTurnEntry, decideTurnMove, TURN_OUTCOME } from './TurnJudge.js';
 
 /* ---------- 可调参数 ---------- */
 const BEAT_MS = 400;        // 1 拍时长
@@ -107,7 +108,8 @@ window.addEventListener('keydown', (e) => {
 
   // 回头窗口内：只要会真正产生移动或拉椅动作就被抓
   if (teacher.phase === 'turn') {
-    if (map.isPassable(tx, ty) || map.isPullable(tx, ty)) {
+    const verdict = decideTurnMove({ passable: map.isPassable(tx, ty), pullable: map.isPullable(tx, ty) });
+    if (verdict === TURN_OUTCOME.CET) {
       quiz.open('cet');
     } else {
       renderer.setHint(BLOCK_HINT[cell.type] || '走不过去', 1200);
@@ -156,32 +158,19 @@ function onActionDone(ev) {
 function handleTurn() {
   if (sm.state !== GameState.PLAYING) return;
 
-  // ① 已到出口 → 通关
-  if (map.isExit(player.x, player.y)) {
-    finishByExit();
-    return;
-  }
+  const verdict = decideTurnEntry({
+    atExit: map.isExit(player.x, player.y),
+    overload: shame.isOverload(),
+    midAction: player.isMidAction(),
+    onBrokenSeat: player.isOnBrokenSeat(),
+    shame: shame.value,
+    flashbackMinShame: FLASHBACK_MIN_SHAME
+  });
 
-  // ② 羞愧满 → 留堂失败
-  if (shame.isOverload()) {
-    finishByOverload();
-    return;
-  }
-
-  // ③ 回头开始瞬间动作尚未落地 → 四六级
-  if (player.isMidAction()) {
-    quiz.open('cet');
-    return;
-  }
-
-  // ④ 静止站在破损座椅 → 羞愧≥30 闪回，否则四六级
-  if (player.isOnBrokenSeat()) {
-    if (shame.value >= FLASHBACK_MIN_SHAME) {
-      quiz.open('flashback', shame.getFlashbackStage());
-    } else {
-      quiz.open('cet');
-    }
-  }
+  if (verdict === TURN_OUTCOME.EXIT) { finishByExit(); return; }
+  if (verdict === TURN_OUTCOME.OVERLOAD) { finishByOverload(); return; }
+  if (verdict === TURN_OUTCOME.CET) { quiz.open('cet'); return; }
+  if (verdict === TURN_OUTCOME.FLASHBACK) { quiz.open('flashback', shame.getFlashbackStage()); return; }
 
   // 其余情况保持回头窗口，玩家一旦移动才会被抓
 }
@@ -312,6 +301,9 @@ function begin() {
 }
 
 startBtn.addEventListener('click', begin);
+
+// 开发便利：?auto=1 直接开局（截图 / 自动化验收用）
+if (typeof location !== 'undefined' && new URLSearchParams(location.search).get('auto') === '1') begin();
 
 stayBtn.addEventListener('click', () => {
   startScreen.classList.add('hidden');

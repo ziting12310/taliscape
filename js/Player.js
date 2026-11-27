@@ -29,6 +29,8 @@ export class Player {
     if (!this.map.isAdjacent(this.x, this.y, tx, ty)) return { started: false, reason: 'not_adjacent' };
     if (!this.map.isPassable(tx, ty)) return { started: false, reason: 'blocked' };
 
+    const dx = tx - this.x;
+    const dy = ty - this.y;
     this.action = { type: 'move', tx, ty, beats: MOVE_BEATS, elapsedMs: 0, progress: 0 };
     this.facing = dy < 0 ? 'n' : dy > 0 ? 's' : dx < 0 ? 'w' : 'e';
     return { started: true, type: 'move' };
